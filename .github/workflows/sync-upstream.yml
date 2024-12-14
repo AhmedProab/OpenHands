@@ -1,0 +1,43 @@
+name: Sync Fork with Upstream
+
+on:
+  schedule:
+    - cron: '0 8 * * *'    # الساعة 8 صباحاً بعد الفجر
+    - cron: '0 13 * * *'   # الساعة 1 ظهراً
+    - cron: '0 20 * * *'   # الساعة 8 مساءً بعد العشاء
+  workflow_dispatch:      # للتشغيل اليدوي
+
+jobs:
+  sync:
+    name: Sync latest changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Git config
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: Sync Fork
+        run: |
+          git remote add upstream https://github.com/All-Hands-AI/OpenHands.git
+          git fetch upstream
+          git checkout main
+          git merge upstream/main --no-edit
+          git push origin main
+
+      - name: Create Pull Request if needed
+        if: failure()
+        uses: peter-evans/create-pull-request@v5
+        with:
+          title: 'chore: Sync Fork with upstream'
+          body: 'Auto-generated PR to sync Fork with upstream'
+          branch: 'sync/upstream'
+          base: 'main'
